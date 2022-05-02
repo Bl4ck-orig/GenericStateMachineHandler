@@ -21,5 +21,6 @@ Steps on how to use:
 Here is a screenshot of the setting in the inspector of the example provided.
 
 <center>
+  
 ![Example](https://user-images.githubusercontent.com/38137603/166268922-dfb1b30d-e985-4960-b6f7-d7ad1ab288c0.png)
 
