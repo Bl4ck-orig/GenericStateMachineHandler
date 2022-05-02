@@ -18,9 +18,10 @@ Steps on how to use:
   7. - Create blackboard entries and evaluations from the inspector in the implementation of the StateMachineHandler.
 
 <br><hr><br>
-Here is a screenshot of the setting in the inspector of the example provided.
+Here is a screenshot of the settings in the inspector of the example provided.
 
 <center>
   
 ![Example](https://user-images.githubusercontent.com/38137603/166268922-dfb1b30d-e985-4960-b6f7-d7ad1ab288c0.png)
 
+</center>
