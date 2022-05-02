@@ -1,2 +1,2 @@
 # GernericStateMachineHandler
-Gerneric StateMachine concept.
+Generic StateMachine concept.
