@@ -1,13 +1,11 @@
 # GernericStateMachineHandler
 
-Simplifies the implementation of statemachines.
+Simplifies the implementation of statemachines. Also a lot of behaviour can be set in the inspector.
 
 Developed in unity but there is no actual unity project.
 There are only the scripts with a simplified example. 
 
 Uses a blackboard system to communicate between states. The blackboard creates instances for entries in the blackboard which are able to execute actions. The evaluations and entries can be set and linked from the inspector.
-
-This concept is created to safe time when creating a statemachine. Also a lot of behaviour can be set in the inspector.
 
 Steps on how to use:
 
@@ -19,7 +17,7 @@ Steps on how to use:
   6. - Implement the states.
   7. - Create blackboard entries and evaluations from the inspector in the implementation of the StateMachineHandler.
 
-
+<br><br>
 Here is a screenshot of the setting in the inspector of the example provided.
 
 
