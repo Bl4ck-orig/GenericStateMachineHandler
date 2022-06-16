@@ -10,32 +10,29 @@ using UnityEngine.Events;
 [System.Serializable]
 public class BlackBoardEntry<U> where U : struct, IConvertible
 {
-    [SerializeField] private bool deactivateInvokation = false;
-    [SerializeField] private U entryType;
-    [SerializeField] private float startValue;
-    [SerializeField] private bool isTimerValue;
-    [SerializeField] private float incrementAfterSeconds;
-    [SerializeField] private List<Evaluation> evaluations;
 
     /// <summary>
     /// The type of entry
     /// </summary>
-    public U EntryType { get => entryType; }
+    [field:SerializeField] public U EntryType { get; private set; }
 
     /// <summary>
     /// The value that the entry should have at start.
     /// </summary>
-    public float StartValue { get => startValue; }
+    [field:SerializeField] public float StartValue { get; private set; }
 
     /// <summary>
     /// Determines if the entry is a value that should be incremented based on time.
     /// </summary>
-    public bool IsTimerValue { get => isTimerValue; }
+    [field:SerializeField] public bool IsTimerValue { get; private set; }
 
     /// <summary>
     /// The interval after which the timer entry should be incremented in seconds. 
     /// </summary>
-    public float IncrementAfterSeconds { get => incrementAfterSeconds; }
+    [field:SerializeField] public float IncrementAfterSeconds { get; private set; }
+
+    [SerializeField] private List<Evaluation> evaluations;
+    [SerializeField] private bool deactivateInvokation = false;
     
     /// <summary>
     /// The current value of the entry.
@@ -72,7 +69,7 @@ public class BlackBoardEntry<U> where U : struct, IConvertible
     /// <param name="_idOfCreature"></param>
     public void Init(int _idOfCreature)
     {
-        Value = startValue;
+        Value = StartValue;
         if(evaluations != null && evaluations.Count > 0 && !deactivateInvokation)
             foreach(Evaluation evaluation in evaluations)
                 evaluation.Init(this);
