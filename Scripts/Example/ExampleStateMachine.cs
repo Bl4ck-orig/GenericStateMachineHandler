@@ -18,11 +18,9 @@ public class ExampleStateMachine : StateMachineHandler<EExampleState, EBlackBoar
     /// <summary>
     /// The statefactory for producing the states.
     /// </summary>
-    protected override IStateFactory<EExampleState, EBlackBoardEntryExample> StateFactory { get => groupStateFactory; }
+    protected override IStateFactory<EExampleState, EBlackBoardEntryExample> StateFactory { get; } = new ExampleStateFactory();
 
     private ExampleBlackBoard blackBoard = new ExampleBlackBoard();
-    private ExampleStateFactory groupStateFactory = new ExampleStateFactory();
-
 
     /// <summary>
     /// Gets called from the evaluation in the inspector.

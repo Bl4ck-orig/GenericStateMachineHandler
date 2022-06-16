@@ -60,7 +60,7 @@ public abstract class StateMachineHandler<T,U> : MonoBehaviour where T : struct,
 
         // Initialize StateMachine
         stateMachine = new StateMachine<U, T, State<T, U>>();
-        stateMachine.Initialize(StatesDict[standardState]);
+        stateMachine.Initialize(StatesDict[startState]);
         initialized = true;
     }
     #endregion -----------------------------------------------------------------

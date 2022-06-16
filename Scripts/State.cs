@@ -36,6 +36,7 @@ public abstract class State<T,U> where T : struct, IConvertible where U : struct
     /// </summary>
     public void Enter()
     {
+        AbstractBlackboard.CurrentState = this;
         StartTime = Time.time;
         IsExitingState = false;
         Entering();
