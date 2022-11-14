@@ -1,144 +1,148 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
+using System.Linq;
+using Debugging;
+using TaskScheduling;
 
-/// <summary>
-/// Gneric handler for a Statemachine concept with a blackboard for handling informations.
-/// 
-/// 23.03.2022 - Bl4ck?
-/// </summary>
-/// <typeparam name="T">Enum that contains all states</typeparam>
-/// <typeparam name="U">Enum that contains the blackboard entries</typeparam>
-public abstract class StateMachineHandler<T,U> : MonoBehaviour where T : struct, IConvertible where U : struct, IConvertible
+namespace FSM
 {
     /// <summary>
-    /// The abstract blackboard.
+    /// Handler for statemachine.
+    /// 
+    /// 23.03.2022 - Bl4ck?
     /// </summary>
-    public abstract BlackBoard<T,U> AbstractBlackBoard { get; set; } 
+    /// <typeparam name="T">Enum that contains all states</typeparam>
+    public class StateMachineHandler<T> : IEventWrapper where T : struct, IConvertible
+    {
+   
+        public State<T> CurrentState { get => stateMachine.CurrentState; } 
 
-    /// <summary>
-    /// The abstract statefactory.
-    /// </summary>
-    protected abstract IStateFactory<T,U> StateFactory { get; }
+        public Action WrappedEvent { get => onStateChanged; set => onStateChanged = value; }
 
-    [SerializeField] private List<T> states;
-    [SerializeField] protected T standardState;
-    [SerializeField] private T startState;
-    [SerializeField] protected List<BlackBoardEntry<U>> blackBoardEntries;
+        public T CurrentStateType { get => CurrentState.StateType; }
+
+        public EScriptGroup ScriptGroup { get; private set; }
+
+        public int Id { get; private set; }
+
+        private T standardState;
+        private List<T> states;
+        private T startState;
+
+        private Dictionary<T, State<T>> statesDict;
+        protected StateMachine<T, State<T>> stateMachine;
+        protected Queue<State<T>> StatesQueue;
+        protected bool initialized = false;
+        private Action onStateChanged;
+
+        #region Initilization -----------------------------------------------------------------
+        public StateMachineHandler(IStateFactory<T> _stateFactory, object _stateMachineSubject, 
+            EScriptGroup _scriptGroup, int _id, T _standardState, List<T> _states, T _startState)
+        {
+            SetupVariables(_id, _scriptGroup, _standardState, _states, _startState);
+
+            InitializeStates(_stateFactory, _stateMachineSubject, _scriptGroup, _id);
+
+            initialized = true;
+        }
+
+        private void SetupVariables(int _id, EScriptGroup _scriptGroup, T _standardState, List<T> _states, T _startState)
+        {
+            Id = _id;
+            ScriptGroup = _scriptGroup;
+            standardState = _standardState;
+            states = _states;
+            startState = _startState;
+            stateMachine = new StateMachine<T, State<T>>();
+        }
     
-    protected Dictionary<T, State<T,U>> StatesDict;
-    protected StateMachine<U, T, State<T,U>> stateMachine; 
-    protected Queue<State<T, U>> StatesQueue;
-    protected bool initialized = false;
-
-    #region Initilization -----------------------------------------------------------------
-    /// <summary>
-    /// Starts initilizing the StateMachine if it is not initialized already.
-    /// </summary>
-    protected virtual void Start()
-    {
-        if(!initialized)
-            InitStateMachineHandler();
-    }
-
-    /// <summary>
-    /// Initializes all necessary collections and variables.
-    /// </summary>
-    protected virtual void InitStateMachineHandler()
-    {
-        // Initialize BlackBoard
-        AbstractBlackBoard = AbstractBlackBoard.Init(this, startState, standardState, blackBoardEntries);
-
-        // Initialize States
-        StatesQueue = new Queue<State<T,U>>();
-        StatesDict = new Dictionary<T, State<T, U>>();
-        foreach (T state in states)
+        private void InitializeStates(IStateFactory<T> _stateFactory, object _stateMachineSubject, EScriptGroup _scriptGroup, int _id)
         {
-            if (!StatesDict.ContainsKey(state))
-                StatesDict.Add(state, StateFactory.CreateState(state, AbstractBlackBoard));
+            StatesQueue = new Queue<State<T>>();
+            statesDict = new Dictionary<T, State<T>>();
+
+            foreach (T state in states)
+            {
+                if (!statesDict.ContainsKey(state))
+                    statesDict.Add(state, _stateFactory.CreateState(_stateMachineSubject, state, _scriptGroup, _id));
+            }
         }
 
-        // Initialize StateMachine
-        stateMachine = new StateMachine<U, T, State<T, U>>();
-        stateMachine.Initialize(StatesDict[startState]);
-        initialized = true;
-    }
-    #endregion -----------------------------------------------------------------
-
-    #region Updating -----------------------------------------------------------------
-    /// <summary>
-    /// Updates the current state by the Update and timer values from the blackboard.
-    /// </summary>
-    protected virtual void Update()
-    {
-        stateMachine.CurrentState.LogicUpdate();
-        AbstractBlackBoard.UpdateTimers();
-    }
-
-    /// <summary>
-    /// Updates the current state by the FixedUpdate.
-    /// </summary>
-    protected virtual void FixedUpdate()
-    {
-        stateMachine.CurrentState.PhysicsUpdate();
-    }
-    #endregion -----------------------------------------------------------------
-
-    #region Handle States -----------------------------------------------------------------
-    /// <summary>
-    /// Changes to a desired state if possible.
-    /// </summary>
-    /// <param name="_state">The deired state</param>
-    public virtual void ChangeState(T _state)
-    {
-        if (StatesDict.ContainsKey(_state) && stateMachine.CurrentState != StatesDict[_state])
+        public void StartStateMachine()
         {
-            stateMachine.ChangeState(StatesDict[_state]);
-            AbstractBlackBoard.CurrentState = _state;
+            stateMachine.Initialize(statesDict[startState]);
         }
+        #endregion -----------------------------------------------------------------
+
+        #region Updating -----------------------------------------------------------------
+        public void Update() => stateMachine.CurrentState.LogicUpdate();
+
+        public void FixedUpdate() => stateMachine.CurrentState.PhysicsUpdate();
+        #endregion -----------------------------------------------------------------
+
+        #region Changing States -----------------------------------------------------------------
+        public virtual void ChangeState(T _state)
+        {
+            if (statesDict.ContainsKey(_state))
+            {
+                if (stateMachine.CurrentState != statesDict[_state])
+                {
+                    stateMachine.ChangeState(statesDict[_state]);
+                    onStateChanged?.Invoke();
+                }
+                return;
+            }
+        }
+
+        public void ChangeState(State<T> _state) => ChangeState(_state.StateType);
+
+        public void ChangeToNextState()
+        {
+            if (StatesQueue.Count > 0)
+                ChangeState(StatesQueue.Dequeue());
+            else
+                ChangeState(standardState);
+        }
+
+        public void SetStandardState(T _state) => standardState = _state;
+        #endregion -----------------------------------------------------------------
+
+        #region Queueing -----------------------------------------------------------------
+        public void EnqueueState(T _state)
+        {
+            if (statesDict.ContainsKey(_state))
+                StatesQueue.Enqueue(statesDict[_state]);
+        }
+
+        public void ClearStatesQueue()
+        {
+            DebugManager.Output(ScriptGroup, this, "Id = " + Id + " Resetting states queue");
+            StatesQueue.Clear();
+        }
+
+        public void ClearStatesQueueAndReset()
+        {
+            ClearStatesQueue();
+            ChangeToNextState();
+        }
+        #endregion -----------------------------------------------------------------
+
+        #region Getting Values -----------------------------------------------------------------
+        public V GetState<V>(T _stateType) where V : State<T> => (V)statesDict[_stateType];
+
+        /// <summary>
+        /// 
+        /// WARNING:
+        /// Method has overhead compared to "V GetState<V>(T _stateType)" !
+        /// 
+        /// </summary>
+        /// <typeparam name="V"></typeparam>
+        /// <returns></returns>
+        public V GetState<V>() where V : State<T> => (V)statesDict.Where(x => x.Value.GetType() == typeof(V)).First().Value;
+
+        public bool IsInState(params T[] _states) => _states.Contains(CurrentState.StateType);
+        #endregion -----------------------------------------------------------------
+
+
     }
-
-    /// <summary>
-    /// Changes to a desired state.
-    /// </summary>
-    /// <param name="_state">The desired state</param>
-    public void ChangeState(State<T,U> _state) => ChangeState(_state.StateName);
-
-    /// <summary>
-    /// Enqueues a state.
-    /// </summary>
-    /// <param name="_state">The desired state</param>
-    public void EnqueueState(T _state)
-    {
-        if (StatesDict.ContainsKey(_state))
-            StatesQueue.Enqueue(StatesDict[_state]);
-    }
-
-    /// <summary>
-    /// Changes either to the next state ot to the standard state.
-    /// </summary>
-    protected void NextState()
-    {
-        if (StatesQueue.Count > 0)
-            ChangeState(StatesQueue.Dequeue());
-        else
-            ChangeState(standardState);
-    }
-
-    /// <summary>
-    /// Clears the states queue.
-    /// </summary>
-    public void ClearStatesQueue() => StatesQueue.Clear();
-
-    /// <summary>
-    /// Clears the states queue and resets.
-    /// </summary>
-    public void ClearStatesQueueAndReset()
-    {
-        StatesQueue.Clear();
-        NextState();
-    }
-    #endregion -----------------------------------------------------------------
-
-
 }

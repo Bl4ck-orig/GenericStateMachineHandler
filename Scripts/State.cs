@@ -1,76 +1,55 @@
 using System;
 using UnityEngine;
 
-/// <summary>
-/// Abstract state for StateMachineHandler
-/// 
-/// 06.01.2022 - Bl4ck?
-/// </summary>
-/// <typeparam name="T">Enum that determines the state</typeparam>
-/// <typeparam name="U">Enum that determines the blackboard entry</typeparam>
-public abstract class State<T,U> where T : struct, IConvertible where U : struct, IConvertible
+namespace FSM
 {
-    /// <summary>
-    /// The point of time in which the state was started.
-    /// </summary>
-    public float StartTime { get; set; }
-
-    /// <summary>
-    /// The name of the state.
-    /// </summary>
-    public T StateName { get; set; }
-
-    /// <summary>
-    /// The blackboard to use for.
-    /// </summary>
-    public abstract BlackBoard<T,U> AbstractBlackboard { get; }
-
-    /// <summary>
-    /// Determines if the state is leaving.
-    /// </summary>
-    public bool IsExitingState { get; set; }
-
-    #region Entering / Exiting -----------------------------------------------------------------
-    /// <summary>
-    /// Gets called when entering the state.
-    /// </summary>
-    public void Enter()
+    public abstract class State<T> where T : struct, IConvertible
     {
-        AbstractBlackboard.CurrentState = this;
-        StartTime = Time.time;
-        IsExitingState = false;
-        Entering();
+        public float StartTime { get; set; }
+
+        public T StateType { get; set; }
+
+        public bool IsExitingState { get; set; }
+
+        private int id;
+        private EScriptGroup scriptGroup;
+        private IDebugInformation debugInfo;
+        private string debugString;
+
+        protected State(T _stateType, EScriptGroup _scriptGroup, int _id, IDebugInformation _debugInfo = null)
+        {
+            StateType = _stateType;
+            id = _id;
+            scriptGroup = _scriptGroup;
+            debugInfo = _debugInfo;
+        }
+
+        #region Entering -----------------------------------------------------------------
+        public void Enter()
+        {
+            StartTime = Time.time;
+            IsExitingState = false;
+            Entering();
+        }
+
+        protected abstract void Entering();
+
+        #endregion -----------------------------------------------------------------
+
+        #region Updating -----------------------------------------------------------------
+        public abstract void LogicUpdate();
+
+        public abstract void PhysicsUpdate();
+        #endregion -----------------------------------------------------------------
+
+        #region Exiting -----------------------------------------------------------------
+        public void Exit()
+        {
+            IsExitingState = true;
+            Exiting();
+        }
+
+        protected abstract void Exiting();
+        #endregion -----------------------------------------------------------------
     }
-
-    /// <summary>
-    /// Abstract method which gets called when enter finished.
-    /// </summary>
-    protected abstract void Entering();
-
-    /// <summary>
-    /// Gets called when exitign the state.
-    /// </summary>
-    public void Exit()
-    {
-        IsExitingState = true;
-        Exiting();
-    }
-
-    /// <summary>
-    /// Abstract method which gets called when exit finished.
-    /// </summary>
-    protected abstract void Exiting();
-    #endregion -----------------------------------------------------------------
-
-    #region Updating -----------------------------------------------------------------
-    /// <summary>
-    /// Gets called in an update function
-    /// </summary>
-    public abstract void LogicUpdate();
-
-    /// <summary>
-    /// Gets called in a fixedupdate function
-    /// </summary>
-    public abstract void PhysicsUpdate();
-    #endregion -----------------------------------------------------------------
 }
