@@ -116,7 +116,6 @@ namespace FSM
 
         public void ClearStatesQueue()
         {
-            DebugManager.Output(ScriptGroup, this, "Id = " + Id + " Resetting states queue");
             StatesQueue.Clear();
         }
 
