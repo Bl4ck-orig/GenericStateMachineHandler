@@ -26,10 +26,11 @@ namespace FSM
         public int Id { get; private set; }
 
         private T standardState;
-        private List<T> states;
+        private List<T> states; 
         private T startState;
 
         private Dictionary<T, State<T>> statesDict;
+        private Dictionary<Type, State<T>> statesTypeDict;
         protected StateMachine<T, State<T>> stateMachine;
         protected Queue<State<T>> StatesQueue;
         protected bool initialized = false;
@@ -60,11 +61,15 @@ namespace FSM
         {
             StatesQueue = new Queue<State<T>>();
             statesDict = new Dictionary<T, State<T>>();
+            statesTypeDict = new Dictionary<Type, State<T>>();
 
             foreach (T state in states)
             {
                 if (!statesDict.ContainsKey(state))
+                {
                     statesDict.Add(state, _stateFactory.CreateState(_stateMachineSubject, state, _scriptGroup, _id));
+                    statesTypeDict.Add(statesDict[state].GetType(), statesDict[state]);
+                }
             }
         }
 
@@ -92,6 +97,20 @@ namespace FSM
                 }
                 return;
             }
+            
+            DebugManager.OutputWarning(ScriptGroup, this, "Trying to change to state " + _state + " which is not known!");
+        }
+
+        public virtual void ChangeStateIgnoreCurrentState(T _state)
+        {
+            if (statesDict.ContainsKey(_state))
+            {
+                stateMachine.ChangeState(statesDict[_state]);
+                onStateChanged?.Invoke();
+                return;
+            }
+
+            DebugManager.OutputWarning(ScriptGroup, this, "Trying to change to state " + _state + " which is not known!");
         }
 
         public void ChangeState(State<T> _state) => ChangeState(_state.StateType);
@@ -112,10 +131,13 @@ namespace FSM
         {
             if (statesDict.ContainsKey(_state))
                 StatesQueue.Enqueue(statesDict[_state]);
+            else
+                DebugManager.OutputWarning(ScriptGroup, this, "Trying to enqueue state " + _state + " which is not known!");
         }
 
         public void ClearStatesQueue()
         {
+            DebugManager.Output(ScriptGroup, this, "Id = " + Id + " Resetting states queue");
             StatesQueue.Clear();
         }
 
@@ -129,15 +151,7 @@ namespace FSM
         #region Getting Values -----------------------------------------------------------------
         public V GetState<V>(T _stateType) where V : State<T> => (V)statesDict[_stateType];
 
-        /// <summary>
-        /// 
-        /// WARNING:
-        /// Method has overhead compared to "V GetState<V>(T _stateType)" !
-        /// 
-        /// </summary>
-        /// <typeparam name="V"></typeparam>
-        /// <returns></returns>
-        public V GetState<V>() where V : State<T> => (V)statesDict.Where(x => x.Value.GetType() == typeof(V)).First().Value;
+        public V GetState<V>() where V : State<T> => (V)statesTypeDict[typeof(V)];
 
         public bool IsInState(params T[] _states) => _states.Contains(CurrentState.StateType);
         #endregion -----------------------------------------------------------------
